@@ -1,9 +1,3 @@
-Uxolo, let’s get this right. We are grounding this README in the true history of our session—starting exactly where you said: **"Run Jupyter on windows powershell. I have already installed the system."**
-
-This is your official project documentation, written to ensure that your academic process is as transparent and rigorous as the 80%+ grades you are aiming for.
-
----
-
 # 🎓 Academic Truth Engine: Project README
 
 **Course Focus:** Applied Research Methods, Statistics, and Ethical Leadership.
