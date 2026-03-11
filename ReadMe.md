@@ -4,20 +4,16 @@ Evidence-first academic Q&A pipeline built around `Academic_Truth_Engine_v2.ipyn
 
 ## Current Notebook Version
 
-`Academic_Truth_Engine_v2.ipynb` now runs as an 8-cell workflow (plus one scratch cell at the end):
+`Academic_Truth_Engine_v2.ipynb` runs as an 8-cell workflow:
 
 1. Install runtime dependencies with `%pip` (LlamaIndex, Replicate, embedding, OCR, trust/cert packages).
 2. Initialize console logging helpers for VS Code-friendly output.
 3. Run diagnostics for Tesseract and Poppler, including optional `pdf2image` smoke test.
 4. Configure Granite 3.1 on Replicate, SSL/certificate guardrails, and embedding fallback chain.
-5. Ingest PDF from Google Drive, validate `%PDF-` header, and fall back to OCR text extraction when needed.
+5. Ingest PDF from Google Drive with access checks and endpoint fallback, validate `%PDF-` header, and fall back to OCR text extraction when needed.
 6. Build semantic chunks with `SemanticSplitterNodeParser` and attach source metadata.
 7. Load local `QueryRewritingRetrieverPack` (with direct file-path fallback import) and create retriever pipeline.
-8. Start interactive research Q&A loop (`end` to stop).
-
-Extra cell currently present:
-
-- Final cell contains raw text (`What is adaptive leadership`) and is not executable Python. Leave it unrun or remove it.
+8. Start interactive research Q&A loop (`end` to stop) with timeout-aware retry handling.
 
 ## Workspace Structure
 
@@ -99,6 +95,82 @@ jupyter notebook Academic_Truth_Engine_v2.ipynb
 
 Run cells from top to bottom.
 
+## Notebook Pre-work (IBM Granite Aligned)
+
+Based on IBM Granite workshop pre-work guidance:
+
+- Run notebooks locally or in Google Colab.
+- For local execution, ensure `Git` and `Python 3.10/3.11/3.12` are available.
+- Set up an AI model runtime before running notebook Q&A steps (Replicate or Ollama).
+
+### Local Pre-work (Windows PowerShell)
+
+Use these commands specifically in **Windows PowerShell**.
+
+1. Open PowerShell and go to the project folder:
+
+```powershell
+cd C:\Users\SMANYEL\Academic-Truth-Engine
+```
+
+2. Create a virtual environment:
+
+```powershell
+python -m venv --upgrade-deps --clear venv
+```
+
+3. Activate the virtual environment:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+4. Install Jupyter components (inside the active venv):
+
+```powershell
+python -m pip install --require-virtualenv notebook ipywidgets
+```
+
+5. Launch the notebook:
+
+```powershell
+jupyter notebook Academic_Truth_Engine_v2.ipynb
+```
+
+### Model Serving Pre-work
+
+#### Option A: Replicate (recommended for this notebook)
+
+1. Create a Replicate account (GitHub account required).
+2. Create a Replicate API token.
+3. In PowerShell, set the token for your current session:
+
+```powershell
+$env:REPLICATE_API_TOKEN = "<your_replicate_api_token>"
+```
+
+Note: This notebook relies on Replicate in Step 2 and Step 6.
+
+#### Option B: Ollama (local model serving)
+
+If you prefer local model serving and your machine has enough resources:
+
+```powershell
+ollama serve
+```
+
+In another PowerShell window:
+
+```powershell
+ollama pull ibm/granite4:micro
+```
+
+### Colab Pre-work (alternative)
+
+- Sign in to Google Colab.
+- Create/store `REPLICATE_API_TOKEN` in Colab Secrets.
+- Enable notebook access to that secret.
+
 ## Runtime Configuration
 
 - API token variable used by notebook: `REPLICATE_API_TOKEN`
@@ -107,7 +179,7 @@ Run cells from top to bottom.
   - `ibm-granite/granite-3.1-8b-instruct`
   - `temperature=0.1`
   - `context_window=128000`
-  - `request_timeout=300.0`
+  - `request_timeout=600.0`
 - Embedding fallback chain:
   1. `BAAI/bge-small-en-v1.5`
   2. `sentence-transformers/all-MiniLM-L6-v2`
@@ -116,19 +188,22 @@ Run cells from top to bottom.
 ## Ingestion and Retrieval Flow
 
 1. Paste a Google Drive link.
-2. Notebook extracts file ID and downloads from `https://drive.google.com/uc`.
-3. It validates the downloaded file starts with `%PDF-`.
-4. It tries PyMuPDF text extraction first.
-5. If extracted text is weak, OCR runs and writes `academic_data/source_material.pdf.ocr.txt`.
-6. Step 4 chunks the selected `source_file` semantically.
-7. Step 5 builds the query-rewriting fusion retriever.
-8. Step 6 answers user questions until `end`.
+2. Notebook extracts file ID and tries download via:
+   - `https://drive.google.com/uc`
+   - `https://drive.usercontent.google.com/download`
+3. It handles Google Drive confirm tokens and retries endpoint path on `401/403`.
+4. It validates the downloaded file starts with `%PDF-`.
+5. It tries PyMuPDF text extraction first.
+6. If extracted text is weak, OCR runs and writes `academic_data/source_material.pdf.ocr.txt`.
+7. Step 4 chunks the selected `source_file` semantically.
+8. Step 5 builds the query-rewriting fusion retriever.
+9. Step 6 answers user questions until `end`, with automatic retry on transient timeout/read-timeout errors.
 
 ## Known Notes
 
-- If Drive permissions are restricted, download may return HTML instead of PDF.
+- If Drive permissions are restricted, download can fail with `401/403`; set sharing to `Anyone with the link: Viewer`.
 - OCR fallback requires both Python OCR packages and system binaries.
-- Final Q&A print label still says `Granite 3.0`, while actual configured model is Granite 3.1.
+- Step 6 now retries transient read-timeout failures automatically before returning a timeout message.
 
 ## Development Notes
 
