@@ -1,99 +1,136 @@
-# 🎓 Academic Truth Engine: Project README
+# Academic Truth Engine
 
-**Purpose:** This notebook ingests a PDF (from Google Drive), semantically chunks it, and runs an evidence-first research loop using a retrieval-augmented generation (RAG) pipeline.
+Evidence-first academic Q&A pipeline built around `Academic_Truth_Engine_v2.ipynb` and a local fusion retriever pack.
 
-## Quick Setup (Windows PowerShell)
+## Current Notebook Version
 
-1. Open PowerShell and change directory to the repository root (the folder containing the notebook):
+`Academic_Truth_Engine_v2.ipynb` now runs as an 8-cell workflow (plus one scratch cell at the end):
 
-```powershell
-cd C:\path\to\Academic-Truth-Engine
+1. Install runtime dependencies with `%pip` (LlamaIndex, Replicate, embedding, OCR, trust/cert packages).
+2. Initialize console logging helpers for VS Code-friendly output.
+3. Run diagnostics for Tesseract and Poppler, including optional `pdf2image` smoke test.
+4. Configure Granite 3.1 on Replicate, SSL/certificate guardrails, and embedding fallback chain.
+5. Ingest PDF from Google Drive, validate `%PDF-` header, and fall back to OCR text extraction when needed.
+6. Build semantic chunks with `SemanticSplitterNodeParser` and attach source metadata.
+7. Load local `QueryRewritingRetrieverPack` (with direct file-path fallback import) and create retriever pipeline.
+8. Start interactive research Q&A loop (`end` to stop).
+
+Extra cell currently present:
+
+- Final cell contains raw text (`What is adaptive leadership`) and is not executable Python. Leave it unrun or remove it.
+
+## Workspace Structure
+
+```text
+Academic-Truth-Engine/
+|- Academic_Truth_Engine_v2.ipynb
+|- ReadMe.md
+|- academic_data/
+|  \- source_material.pdf
+\- query_rewriting_pack/
+   |- pyproject.toml
+   |- README.md
+   \- llama_index/packs/fusion_retriever/
+      |- __init__.py
+      |- hybrid_fusion/base.py
+      \- query_rewrite/base.py
 ```
 
-2. Install Jupyter and ipywidgets (using the specified PyPI mirror):
+## Local Retriever Pack
+
+The notebook uses `query_rewriting_pack/` as a local package source.
+
+- `QueryRewritingRetrieverPack`
+- `HybridFusionRetrieverPack`
+
+In the notebook, Step 5 imports:
+
+- `llama_index.packs.fusion_retriever.query_rewrite.base.QueryRewritingRetrieverPack`
+
+If standard import fails, it loads `query_rewriting_pack/llama_index/packs/fusion_retriever/query_rewrite/base.py` directly with `importlib`.
+
+## Requirements
+
+### Python
+
+- Python 3.9+
+- Jupyter Notebook or Jupyter Lab
+
+Primary runtime packages installed in Step 1:
+
+- `llama-index`
+- `llama-index-llms-replicate`
+- `llama-index-embeddings-huggingface`
+- `llama-index-readers-file`
+- `llama-index-packs-fusion-retriever`
+- `sentence-transformers`
+- `huggingface_hub[hf_xet]`
+- `hf_xet`
+- `certifi`
+- `python-certifi-win32`
+- `truststore`
+- `nest-asyncio`
+- `requests`
+- `replicate`
+- `pytesseract`
+- `pdf2image`
+- `Pillow`
+- `PyMuPDF`
+
+### System Dependencies (OCR fallback path)
+
+- Tesseract OCR executable: https://github.com/tesseract-ocr/tesseract
+- Poppler utilities (`pdftoppm` or `pdftocairo`): https://poppler.freedesktop.org/
+
+Optional Windows install via Chocolatey:
 
 ```powershell
-python -m pip install notebook ipywidgets -i https://pypi.tuna.tsinghua.edu.cn/simple
-```
-
-3. Activate the virtual environment:
-
-```powershell
-.\venv\Scripts\activate
-```
-
-4. Inside the virtual environment, launch the notebook:
-
-```powershell
-jupyter notebook Academic_Truth_Engine_v2.ipynb
-```
-
-## Additional Python / System Dependencies
-
-- The notebook requires several Python packages (the first notebook cell installs them), including OCR-related packages: `pytesseract`, `pdf2image`, `Pillow`, and `PyMuPDF`.
-- For OCR fallback to work you must also install system tools:
-  - Tesseract OCR executable: https://github.com/tesseract-ocr/tesseract
-  - Poppler utilities (for `pdf2image`): https://poppler.freedesktop.org/
-
-If those executables are missing, the notebook will fall back to plain PDF text extraction and print instructions.
-
-## How the Notebook Handles PDFs
-
-- The notebook attempts to download a PDF from Google Drive when you paste a share link.
-- It first tries to extract selectable text using `PyMuPDF`.
-- If the PDF is scanned/image-only or contains no extractable text, the notebook falls back to OCR using `pdf2image` + `pytesseract` and generates a `.ocr.txt` file which is then ingested.
-
-## Notes & Troubleshooting
-
-- If Google Drive links prompt for a permission or require interactive confirmation, ensure the file is shareable (anyone with link can view) or download the PDF manually into the `academic_data` folder and name it `source_material.pdf`.
-- If OCR is slow or produces noisy text, consider preprocessing the PDF (deskew, increase DPI) or using a higher-quality Tesseract language model.
-
-## Running
-
-1. Open [Academic_Truth_Engine_v2.ipynb](Academic_Truth_Engine_v2.ipynb) in Jupyter.
-2. Run the cells in order. When prompted, paste your Google Drive link.
-3. After ingestion and parsing, ask research questions in the interactive loop.
-
-## Console & Logs
-
-- The notebook includes an interactive console widget (a scrollable output pane) displayed near the top of the notebook. Operational logs, warnings, and errors from ingestion, extraction, OCR, and retrieval stages are written to that console.
-- What you'll see: startup confirmations, model/setup status, download and extraction messages, OCR success/failure, semantic node counts, and query-run errors or summaries. Logs include timestamps and severity.
-- The console is implemented with `ipywidgets.Output`; you do not need a separate terminal to view runtime logs.
-
-## Diagnostics (optional)
-
-- An optional diagnostics cell can verify system tools required for OCR:
-  - Checks for the Tesseract executable and prints its version.
-  - Attempts a small `pdf2image` conversion to verify Poppler availability.
-- If a check fails, the diagnostics cell prints installation suggestions and links.
-
-## Troubleshooting Quick Commands
-
-If Tesseract or Poppler are missing, common Windows install suggestions (Chocolatey):
-
-```powershell
-# Install Tesseract (requires Chocolatey)
 choco install tesseract
-
-# Install Poppler (requires Chocolatey)
 choco install poppler
 ```
 
-After installing, restart your terminal/Jupyter kernel and re-run the diagnostics cell.
-
-## Virtualenv: install specific packages and register Jupyter kernel
-
-If you need to force-install specific packages inside the project's virtual environment and register that venv as a dedicated Jupyter kernel, run the following from the activated `venv`:
+## Quick Start (Windows PowerShell)
 
 ```powershell
-# 1. Force install the specific missing modules
-python -m pip install --default-timeout=100 llama-index-llms-replicate replicate llama-index-embeddings-huggingface
-
-# 2. Register this venv as a dedicated Jupyter Kernel
-python -m pip install ipykernel
-python -m ipykernel install --user --name=AcademicEngine --display-name "Python (Academic Engine)"
+cd C:\Users\SMANYEL\Academic-Truth-Engine
+.\venv\Scripts\Activate.ps1
+jupyter notebook Academic_Truth_Engine_v2.ipynb
 ```
 
-After installing and registering the kernel, restart Jupyter Notebook and select the kernel named "Python (Academic Engine)" from the Kernel menu to run the notebook inside this environment.
+Run cells from top to bottom.
 
----
+## Runtime Configuration
+
+- API token variable used by notebook: `REPLICATE_API_TOKEN`
+- If missing, notebook prompts for token with `getpass` fallback to `input`
+- Model configured in Step 2:
+  - `ibm-granite/granite-3.1-8b-instruct`
+  - `temperature=0.1`
+  - `context_window=128000`
+  - `request_timeout=300.0`
+- Embedding fallback chain:
+  1. `BAAI/bge-small-en-v1.5`
+  2. `sentence-transformers/all-MiniLM-L6-v2`
+  3. `MockEmbedding`
+
+## Ingestion and Retrieval Flow
+
+1. Paste a Google Drive link.
+2. Notebook extracts file ID and downloads from `https://drive.google.com/uc`.
+3. It validates the downloaded file starts with `%PDF-`.
+4. It tries PyMuPDF text extraction first.
+5. If extracted text is weak, OCR runs and writes `academic_data/source_material.pdf.ocr.txt`.
+6. Step 4 chunks the selected `source_file` semantically.
+7. Step 5 builds the query-rewriting fusion retriever.
+8. Step 6 answers user questions until `end`.
+
+## Known Notes
+
+- If Drive permissions are restricted, download may return HTML instead of PDF.
+- OCR fallback requires both Python OCR packages and system binaries.
+- Final Q&A print label still says `Granite 3.0`, while actual configured model is Granite 3.1.
+
+## Development Notes
+
+- `query_rewriting_pack/pyproject.toml` currently defines package version `0.5.1`.
+- `query_rewriting_pack/README.md` is intentionally minimal and should remain because it is referenced by `pyproject.toml`.
