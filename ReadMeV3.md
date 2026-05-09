@@ -25,6 +25,12 @@ Current v3 stages:
 10. Initialize local `QueryRewritingRetrieverPack` in sequential mode for stability.
 11. Apply runtime visual presets via Step 5.5 (`visual_only`, `visual_brief`, `visual_brief_export`).
 12. Run interactive Q&A that synthesizes short-term and long-term evidence with hierarchical routing and semantic citations.
+    - On startup, choose to **continue a previous session** or **start a new session**.
+    - Six auto-detected **prompt modes**: `essay`, `chat`, `summarise`, `paraphrase`, `formulate`, `retrieval`.
+    - Built-in **meta-question** handler for system self-knowledge (model name, memory stats, etc.).
+    - **Network error** detection: shows a clean `🌐 OFFLINE` message instead of raw tracebacks.
+    - Type `show history` (or `session`/`history`) to view all Q&A exchanges for the current session.
+    - Type `end` to exit the loop.
 13. Optionally auto-render visual answer panels and auto-generate/export slide briefs per query.
 
 ## Architecture Summary
@@ -63,6 +69,7 @@ Academic-Truth-Engine/
 |- academic_data/
 |  \- source_material.pdf
 |- mempalace_db/                     # created automatically after Step 4.5 runs
+|- sessions/                         # created automatically; one JSON file per session
 \- query_rewriting_pack/
   |- pyproject.toml
   |- README.md
@@ -183,6 +190,42 @@ $env:ATE_RUNTIME_MODE = "fast"
 # $env:ATE_AUTO_BRIEF_EXPORT = "0"
 # $env:ATE_BRIEF_STYLE = "artifact"
 ```
+
+## Prompt Modes
+
+Cell 17 auto-detects the intent of each query and selects a prompt mode:
+
+| Mode | Trigger keywords | Behaviour |
+|---|---|---|
+| `essay` | `write`, `essay`, `discuss`, `analyse` | Long-form academic paragraph |
+| `chat` | `what is`, `who`, `when`, `how many` | Short direct factual answer |
+| `summarise` | `summarise`, `summarize`, `summary`, `tldr` | Concise bullet-point summary |
+| `paraphrase` | `paraphrase`, `reword`, `rephrase` | Plain-language restatement |
+| `formulate` | `formulate`, `structure`, `framework` | Structured evidence-based argument |
+| `retrieval` | (default fallback) | Evidence retrieval with synthesis |
+
+## Session History
+
+Every Q&A exchange is persisted to `sessions/` as a JSON file.
+
+- On Cell 17 startup the engine checks for previous sessions in `sessions/`.
+- If found, it prints the most recent session ID and exchange count, then asks:
+  - `c` — **continue** the previous session (appends new Q&A to it)
+  - `n` — **new session** (creates a fresh `session_YYYYMMDD_HHMMSS.json`)
+- During the loop, type `show history` (or `session` / `history`) to view all exchanges in the current session as a styled HTML panel.
+- Session files are plain JSON and can be inspected or archived freely.
+
+## Visual Output Panel
+
+All answers are rendered in a dark-theme HTML panel:
+
+- **Background**: `#0a0a0a` (near-black)
+- **Text**: `#f0f0f0` / `#e8e8e8` (white / near-white)
+- **Borders**: top + bottom in **gold** (`#CFB53B`), left + right in **blue** (`#1A6FBF`)
+- **Answer body**: `#111111` box with a gold left stripe and a faint blue glow
+- **Source citations**: steel-blue `#8ab0c8`
+
+The `show history` panel uses the same dark CSS template.
 
 ## Known Notes
 
