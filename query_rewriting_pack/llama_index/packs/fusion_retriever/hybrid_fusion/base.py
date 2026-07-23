@@ -5,7 +5,14 @@ from typing import Any, Dict, List
 
 from llama_index.core import Settings
 from llama_index.core.indices.vector_store import VectorStoreIndex
-from llama_index.core.llama_pack.base import BaseLlamaPack
+try:
+    from llama_index.core.llama_pack.base import BaseLlamaPack
+except ImportError:
+    try:
+        from llama_index.core import BaseLlamaPack
+    except ImportError:
+        class BaseLlamaPack:
+            pass
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import QueryFusionRetriever
 from llama_index.core.schema import Document, TextNode
